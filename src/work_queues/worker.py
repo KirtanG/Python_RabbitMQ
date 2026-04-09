@@ -16,6 +16,7 @@ def callback(ch, method, properties, body):
     print(f" [x] Received {body.decode()}")
     time.sleep(body.count(b'.'))
     print(" [x] Done")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URI))
@@ -24,9 +25,9 @@ def main():
 
     channel.queue_declare(queue='hello', durable=True, arguments={'x-queue-type': 'quorum'})
 
+    channel.basic_qos(prefetch_count=1)
     channel.basic_consume(
         queue='hello',
-        auto_ack=True,
         on_message_callback=callback,
     )
 

@@ -25,7 +25,11 @@ channel.queue_declare(queue='hello', durable=True,
 
 channel.basic_publish(exchange='',
                       routing_key='hello',
-                      body=message)
+                      body=message,
+                      properties=pika.BasicProperties(
+                          delivery_mode=pika.DeliveryMode.Persistent,
+                      )
+                    )
 
 print(f" [x] Sent '{message}'")
 
