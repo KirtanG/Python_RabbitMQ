@@ -1,7 +1,7 @@
-from pika import channel
 import os
+import asyncio
 
-import pika
+import aio_pika
 from dotenv import load_dotenv
 
 load_dotenv(".env")
@@ -11,16 +11,28 @@ RABBITMQ_URI = os.getenv("RABBITMQ_URI")
 if not RABBITMQ_URI:
     raise RuntimeError("RABBITMQ_URI is not set")
 
-connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URI))
+async def main():
+    connection = await aio_pika.connect_robust(RABBITMQ_URI)
 
-channel = connection.channel()
+    async with connection.channel() as channel:
+        await channel.declare_queue(
+            name='hello',
+            durable=True,
+            arguments={
+                'x-queue-type':'quorum'
+            }
+        )
 
-channel.queue_declare(queue='hello', durable=True, arguments={'x-queue-type': 'quorum'})
+        await channel.default_exchange.publish(
+            routing_key = 'hello',
+            message = aio_pika.Message(
+                body = "Hello World".encode(),
+                delivery_mode = aio_pika.DeliveryMode.PERSISTENT # same as in tutorial for durable = True
+            ),
 
-channel.basic_publish(exchange='',
-                      routing_key='hello',
-                      body='Hello World!')
+        )
 
-print(" [x] Sent 'Hello World!'")
+    print(" [x] Sent 'Hello World!'")
 
-connection.close()
+if __name__ == "__main__":
+    asyncio.run(main())
