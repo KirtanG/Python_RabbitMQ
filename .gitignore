@@ -11,3 +11,6 @@ wheels/
 
 # Environment variables
 .env
+
+# Ignores all .md files that are inside any subdirectory
+*/**/*.md

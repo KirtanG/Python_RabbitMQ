@@ -26,12 +26,13 @@ async def main():
         await channel.default_exchange.publish(
             routing_key = 'hello',
             message = aio_pika.Message(
-                body = "Hello World".encode(),
+                body = "yooo!".encode(),
                 delivery_mode = aio_pika.DeliveryMode.PERSISTENT # same as in tutorial for durable = True
             ),
 
         )
 
+        await connection.close()
     print(" [x] Sent 'Hello World!'")
 
 if __name__ == "__main__":

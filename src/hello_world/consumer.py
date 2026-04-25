@@ -1,7 +1,8 @@
 import os
 import sys
+import asyncio
 
-import pika
+import aio_pika
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,28 +12,39 @@ RABBITMQ_URI = os.getenv("RABBITMQ_URI")
 if not RABBITMQ_URI:
     raise RuntimeError("RABBITMQ_URI is not set")
 
-def callback(ch, method, properties, body):
-    print(f" [x] Received {body}")
+async def callback(message: aio_pika.IncomingMessage):
+    async with message.process():
+        body = message.body
+        print(f" [x] Received {body}")
 
-def main():
-    connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URI))
+async def main():
+    print("Starting....")
+    connection = await aio_pika.connect_robust(RABBITMQ_URI)
+    print("Connection done!")
+    async with connection.channel() as channel:
+        await channel.declare_queue(
+            name='hello', 
+            durable=True, 
+            arguments={'x-queue-type': 'quorum'}
+        )
 
-    channel = connection.channel()
+        # start consuming the event
+        queue = await channel.get_queue(name="hello")
+        await queue.consume(
+            callback=callback,
+            no_ack=False
+        )
 
-    channel.queue_declare(queue='hello', durable=True, arguments={'x-queue-type': 'quorum'})
-
-    channel.basic_consume(
-        queue='hello',
-        auto_ack=True,
-        on_message_callback=callback,
-    )
-
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
+        print(' [*] Waiting for messages. To exit press CTRL+C')
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            print("Terminating consumer....")
+            await connection.close()
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except KeyboardInterrupt:
         print("\n")
         print("[*] Exiting...")
