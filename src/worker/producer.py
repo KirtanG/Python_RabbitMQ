@@ -47,3 +47,6 @@ async def main():
         await connection.close()
 
         print(f" [x] Sent '{message}'")
+
+if __name__ == "__main__":
+    asyncio.run(main())
