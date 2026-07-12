@@ -12,7 +12,7 @@ RABBITMQ_URI = os.getenv("RABBITMQ_URI")
 if not RABBITMQ_URI:
     raise RuntimeError("RABBITMQ_URI is not set")
 
-async def callback(message: aio_pika.IncomingMessage):
+async def callback(message: aio_pika.abc.AbstractIncomingMessage):
     async with message.process():
         body = message.body
         print(f" [x] Received {body}")
